@@ -66,8 +66,8 @@ workflows:
         - content: |-
             ((NEW_VERSION_BUILD= PUBSPEC_BUILD_NUMBER+1))
             cd $BITRISE_SOURCE_DIR
-            git config --local user.email "minhthong095@gmail.com"
-            git config --local user.name "M.Thong"
+            git config --local user.email $GIT_CONFIG_EMAIL
+            git config --local user.name $GIT_CONFIG_NAME
             git add $BITRISE_SOURCE_DIR/pubspec.yaml
             git add ios/Runner/Info.plist
             git add ios/Runner.xcodeproj
@@ -95,3 +95,9 @@ app:
   - opts:
       is_expand: false
     FB_APP_DISTRIBUTE_TESTGROUP: mcom-tester
+  - opts:
+      is_expand: false
+    GIT_CONFIG_EMAIL: minhthong095@gmail.com
+  - opts:
+      is_expand: false
+    GIT_CONFIG_NAME: Thong
