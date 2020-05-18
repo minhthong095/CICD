@@ -1,12 +1,12 @@
 # Copy this to Fastfile in your fastlane
 default_platform(:ios)
 
-buildNumber = nil
+# Do not change the outputName variable value. It's paired bitrise scripts.
+outputPath = "./build"
+outputName = "ipa"
 
 platform :ios do
   lane :build_and_testflight do
-    outputPath = "./build"
-    outputName = "demo_hospital"
     increment_build_number
     gym(
       output_directory: outputPath,
@@ -21,16 +21,10 @@ platform :ios do
     )
   end
   lane :bump_and_build do
-    outputPath = "./build"
-    outputName = "demo_hospital"
-    cocoapods( 
-      use_bundle_exec: false,
-      podfile: "./Podfile"
-    )
     increment_build_number
     gym(
       output_directory: outputPath,
-      output_name: outputName
+      output_name: outputName + ".ipa"
     )
   end
 end

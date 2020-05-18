@@ -11,8 +11,23 @@ workflows:
   test:
     setps: 
     steps:
-    - xcode-test@2: {}
-    - telegram-notifier@1: {}
+    - activate-ssh-key@4: {}
+    - git-clone@4: {}
+    - script@1:
+        inputs:
+        - content: |-
+            cd $BITRISE_SOURCE_DIR
+            flutter pub get
+    - fastlane@2:
+        inputs:
+        - work_dir: "$BITRISE_SOURCE_DIR/ios"
+        - lane: bump_and_build
+    - deploy-to-itunesconnect-application-loader@0:
+        inputs:
+        - app_password: "$FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD"
+        - password: "$APPLE_PASSWORD"
+        - itunescon_user: "$APPLE_ID"
+        - ipa_path: "$BITRISE_SOURCE_DIR/ios/build/ipa.ipa"
     - telegram-notify@1.0:
         inputs:
         - custom_message: Test telegram
@@ -42,6 +57,9 @@ workflows:
         - android_output_pattern: "*build/app/outputs/apk/*/*.apk"
         - platform: android
         title: Build Android
+    - cocoapods-install@1:
+        inputs:
+        - source_root_path: "$BITRISE_SOURCE_DIR/ios"
     - fastlane@2:
         inputs:
         - lane: bump_and_build
@@ -60,7 +78,7 @@ workflows:
         - itunescon_user: "$APPLE_ID"
         - password: "$APPLE_PASSWORD"
         - app_password: "$FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD"
-        - ipa_path: "$BITRISE_SOURCE_DIR/ios/build/demo_hospital.ipa"
+        - ipa_path: "$BITRISE_SOURCE_DIR/ios/build/ipa.ipa"
     - script@1:
         inputs:
         - content: |-
@@ -72,7 +90,7 @@ workflows:
             git add ios/Runner/Info.plist
             git add ios/Runner.xcodeproj
             git commit -m "[build]"
-            git push origin master
+            git push
         title: Push new build version
     - telegram-notify@1:
         inputs:
