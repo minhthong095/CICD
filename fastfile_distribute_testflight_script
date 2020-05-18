@@ -23,6 +23,10 @@ platform :ios do
   lane :bump_and_build do
     outputPath = "./build"
     outputName = "demo_hospital"
+    cocoapods( 
+      use_bundle_exec: false,
+      podfile: "./Podfile"
+    )
     increment_build_number
     gym(
       output_directory: outputPath,
