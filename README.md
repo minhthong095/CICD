@@ -16,6 +16,7 @@ Prerequisites:
 
 [iOS]
  - P12, bundle id, appstore connect, distribution profiles have already created.
+ - Appropriated account to deploy app to appstore connect.
  - Fastlane init in your ios project.
  - Replace Fastfile with fastfile_distribute_testflight_script.
  - Add distribution provisioning profile into ios project with release type.
