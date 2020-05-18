@@ -17,6 +17,7 @@ Prerequisites:
 [iOS]
  - P12, bundle id, appstore connect, distribution profiles have already created.
  - Fastlane init in your ios project.
+ - Replace Fastfile with fastfile_distribute_testflight_script.
  - Add distribution provisioning profile into ios project with release type.
  - Add appropriated distribution provisioning profile into 'Code Signing'.
  - Add p12 file pair with distribution provisioning profile into 'Code Signing'
