@@ -1,0 +1,32 @@
+# Copy this to Fastfile in your fastlane
+default_platform(:ios)
+
+buildNumber = nil
+
+platform :ios do
+  lane :build_and_testflight do
+    outputPath = "./build"
+    outputName = "demo_hospital"
+    increment_build_number
+    gym(
+      output_directory: outputPath,
+      output_name: outputName
+    )
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      uses_non_exempt_encryption: false,
+      # Skip submission only prevents fastlane from sending the build for external testing review.
+      skip_submission: true,
+      ipa: outputPath + "/" + outputName + ".ipa"
+    )
+  end
+  lane :bump_and_build do
+    outputPath = "./build"
+    outputName = "demo_hospital"
+    increment_build_number
+    gym(
+      output_directory: outputPath,
+      output_name: outputName
+    )
+  end
+end

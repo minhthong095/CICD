@@ -1,0 +1,97 @@
+---
+format_version: '8'
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: flutter
+trigger_map:
+- push_branch: "*"
+  workflow: primary
+- pull_request_source_branch: "*"
+  workflow: primary
+workflows:
+  test:
+    setps: 
+    steps:
+    - xcode-test@2: {}
+    - telegram-notifier@1: {}
+    - telegram-notify@1.0:
+        inputs:
+        - custom_message: Test telegram
+        - download_url: about:blank
+  primary:
+    steps:
+    - activate-ssh-key@4:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - certificate-and-profile-installer@1: {}
+    - git-clone@4: {}
+    - flutter-installer@0:
+        inputs:
+        - installation_bundle_url: https://storage.googleapis.com/flutter_infra/releases/stable/macos/flutter_macos_v1.12.13+hotfix.9-stable.zip
+        - version: ''
+        - is_update: 'false'
+    - get-pubspec-version-and-build-number@1: {}
+    - certificate-and-profile-installer@1: {}
+    - script@1:
+        title: Bump android
+        inputs:
+        - content: |-
+            ((NEW_VERSION_BUILD= PUBSPEC_BUILD_NUMBER+1))
+            cd $BITRISE_SOURCE_DIR
+            sed -i -e "s/version: $PUBSPEC_VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $PUBSPEC_VERSION_NAME+$NEW_VERSION_BUILD/g" pubspec.yaml
+    - flutter-build@0:
+        inputs:
+        - android_output_pattern: "*build/app/outputs/apk/*/*.apk"
+        - platform: android
+        title: Build Android
+    - fastlane@2:
+        inputs:
+        - lane: bump_and_build
+        - update_fastlane: 'false'
+        - verbose_log: 'yes'
+        - work_dir: "$BITRISE_SOURCE_DIR/ios"
+        title: Bump & build ios
+    - firebase-app-distribution@0:
+        inputs:
+        - firebase_token: "$FB_TOKEN"
+        - groups: "$FB_APP_DISTRIBUTE_TESTGROUP"
+        - app_path: "$BITRISE_APK_PATH"
+        - app: "$FB_ANDROID_APP_DISTRIBUTE_ID"
+    - deploy-to-itunesconnect-application-loader@0:
+        inputs:
+        - itunescon_user: "$APPLE_ID"
+        - password: "$APPLE_PASSWORD"
+        - app_password: "$FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD"
+        - ipa_path: "$BITRISE_SOURCE_DIR/ios/build/demo_hospital.ipa"
+    - script@1:
+        inputs:
+        - content: |-
+            ((NEW_VERSION_BUILD= PUBSPEC_BUILD_NUMBER+1))
+            cd $BITRISE_SOURCE_DIR
+            git config --local user.email "minhthong095@gmail.com"
+            git config --local user.name "M.Thong"
+            git add $BITRISE_SOURCE_DIR/pubspec.yaml
+            git add ios/Runner/Info.plist
+            git add ios/Runner.xcodeproj
+            git commit -m "[build]"
+            git push origin master
+        title: Push new build version
+    - telegram-notify@1:
+        inputs:
+        - download_url: empty
+        - custom_message: ''
+app:
+  envs:
+  - opts:
+      is_expand: false
+    BITRISE_PROJECT_PATH: ios/Runner.xcworkspace
+  - opts:
+      is_expand: false
+    BITRISE_SCHEME: Runner
+  - opts:
+      is_expand: false
+    BITRISE_EXPORT_METHOD: app-store
+  - opts:
+      is_expand: false
+    FASTLANE_DONT_STORE_PASSWORD: '1'
+  - opts:
+      is_expand: false
+    FB_APP_DISTRIBUTE_TESTGROUP: mcom-tester
