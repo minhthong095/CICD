@@ -21,9 +21,10 @@ platform :ios do
       ipa: outputPath + "/" + outputName + ".ipa"
     )
   end
-  lane :bump_and_build do
+  lane :bump_and_build do |options|
     increment_build_number
     gym(
+      scheme: options[:scheme],
       output_directory: outputPath,
       output_name: outputName + ".ipa"
     )
