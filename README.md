@@ -2,7 +2,7 @@
 
 - Create app in Bitrise.
 - Add SSH git repo to Bitrise.
-- Add SSH public key to Git account has authority to clone repo.
+- Add SSH public key to Git account has authority to clone and write repo.
 
 I. [TEST] Firebase Distribute & TestFlight
 
