@@ -9,6 +9,7 @@ I. [TEST] Firebase Distribute & TestFlight
 Note: 
 - Only apply scripts to Flutter project and work in flow for testing in firebase app distribute and testflight. Default Flutter SDK 1.12.13+hotfix-9.
 - Auto signing not config in ios project will not work. Only running when ios add distribution provisioning.
+- lane 'bump_and_build' has option for scheme to custom bitrise script.
 
 Pick up file:
 - bitrise_distribute_testflight.yml 
