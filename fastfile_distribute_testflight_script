@@ -6,10 +6,10 @@ outputPath = "./build"
 outputName = "ipa"
 
 platform :ios do
-  # Not work for bitrise
-  lane :build_and_testflight do
+  lane :build_and_testflight do |options|
     increment_build_number
     gym(
+      scheme: options[:scheme],
       output_directory: outputPath,
       output_name: outputName
     )
