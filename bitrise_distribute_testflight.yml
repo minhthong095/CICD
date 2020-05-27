@@ -82,15 +82,23 @@ workflows:
     - script@1:
         inputs:
         - content: |-
-            ((NEW_VERSION_BUILD= PUBSPEC_BUILD_NUMBER+1))
-            cd $BITRISE_SOURCE_DIR
-            git config --local user.email $GIT_CONFIG_EMAIL
-            git config --local user.name $GIT_CONFIG_NAME
-            git add $BITRISE_SOURCE_DIR/pubspec.yaml
-            git add ios/Runner/Info.plist
-            git add ios/Runner.xcodeproj
-            git commit -m "[build]"
-            git push
+          cd $BITRISE_SOURCE_DIR
+          git config --local user.email $GIT_CONFIG_EMAIL
+          git config --local user.name $GIT_CONFIG_NAME
+          git fetch
+          AHEAD_COUNT=$(git rev-list --count master...origin/master)
+          if [[ $AHEAD_COUNT > 0 ]]; 
+          then 
+          git pull;
+          HASH=$(git rev-parse HEAD);
+          COMMIT_MESSAGE=[build] on $HASH;
+          else COMMIT_MESSAGE="[build]";fi
+          ((NEW_VERSION_BUILD= PUBSPEC_BUILD_NUMBER+1))
+          git add $BITRISE_SOURCE_DIR/pubspec.yaml
+          git add ios/Runner/Info.plist
+          git add ios/Runner.xcodeproj
+          git commit -m "$COMMIT_MESSAGE"
+          git push
         title: Push new build version
     - telegram-notify@1:
         inputs:
