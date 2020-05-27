@@ -18,10 +18,6 @@ workflows:
         - content: |-
             cd $BITRISE_SOURCE_DIR
             flutter pub get
-    - fastlane@2:
-        inputs:
-        - work_dir: "$BITRISE_SOURCE_DIR/ios"
-        - lane: bump_and_build
     - deploy-to-itunesconnect-application-loader@0:
         inputs:
         - app_password: "$FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD"
@@ -46,12 +42,23 @@ workflows:
     - get-pubspec-version-and-build-number@1: {}
     - certificate-and-profile-installer@1: {}
     - script@1:
-        title: Bump android
+        title: Android version name & build number
         inputs:
         - content: |-
-            ((NEW_VERSION_BUILD= PUBSPEC_BUILD_NUMBER+1))
-            cd $BITRISE_SOURCE_DIR
-            sed -i -e "s/version: $PUBSPEC_VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $PUBSPEC_VERSION_NAME+$NEW_VERSION_BUILD/g" pubspec.yaml
+          cd $BITRISE_SOURCE_DIR
+          echo "Android setting version name..."
+          VERSION_NAME=$PUBSPEC_VERSION_NAME;
+          if [ -z "$ANDROID_CUSTOM_VERSION_NAME_ENDPOINT" ];then echo "No \""ANDROID_CUSTOM_VERSION_NAME_ENDPOINT\"" from endpoint. Android platform will use default version name.";
+          else
+          VERSION_NAME=$ANDROID_CUSTOM_VERSION_NAME_ENDPOINT
+          sed -i -e "s/version: $PUBSPEC_VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $VERSION_NAME+$PUBSPEC_BUILD_NUMBER/g" pubspec.yaml; fi
+          
+          echo "Android setting build number..."
+          if [ -z "$ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT" ];then echo "No \""ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT\"" from endpoint. Android platform will automatically bump build number.";
+          ((NEW_VERSION_BUILD=PUBSPEC_BUILD_NUMBER+1));
+          sed -i -e "s/version: $VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $VERSION_NAME+$NEW_VERSION_BUILD/g" pubspec.yaml;
+          else
+          sed -i -e "s/version: $VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $VERSION_NAME+$ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT/g" pubspec.yaml; fi
     - flutter-build@0:
         inputs:
         - android_output_pattern: "*build/app/outputs/apk/*/*.apk"
@@ -60,13 +67,28 @@ workflows:
     - cocoapods-install@1:
         inputs:
         - source_root_path: "$BITRISE_SOURCE_DIR/ios"
+    - script@1:
+        title: IOS version name & build number
+        inputs:
+      - content: |-
+        cd $BITRISE_SOURCE_DIR/ios
+        echo "Ios setting version name..."
+        if [ -z "$IOS_CUSTOM_VERSION_NAME_ENDPOINT" ];then echo "No \""IOS_CUSTOM_VERSION_NAME_ENDPOINT\"" from endpoint. Ios platform will use default version name.";
+        else
+        fastlane run increment_version_number version_number:$IOS_CUSTOM_VERSION_NAME_ENDPOINT; fi
+            
+        echo "Ios setting build number..."
+        if [ -z "$IOS_CUSTOM_BUILD_NUMBER_ENDPOINT" ];then echo "No \""IOS_CUSTOM_VERSION_NAME_ENDPOINT\"" from endpoint. Ios platform will automatically bump build number.";
+        fastlane run increment_build_number;
+        else
+        fastlane run increment_build_number build_number:$IOS_CUSTOM_BUILD_NUMBER_ENDPOINT; fi
     - fastlane@2:
         inputs:
-        - lane: bump_and_build
+        - lane: build
         - update_fastlane: 'false'
         - verbose_log: 'yes'
         - work_dir: "$BITRISE_SOURCE_DIR/ios"
-        title: Bump & build ios
+        title: Build ios
     - firebase-app-distribution@0:
         inputs:
         - firebase_token: "$FB_TOKEN"
@@ -83,14 +105,12 @@ workflows:
         inputs:
         - content: |-
           cd $BITRISE_SOURCE_DIR
-          git config --local user.email $GIT_CONFIG_EMAIL
-          git config --local user.name $GIT_CONFIG_NAME
           git fetch
           AHEAD_COUNT=$(git rev-list --count master...origin/master)
           if [[ $AHEAD_COUNT > 0 ]]; 
           then 
-          git pull;
           HASH=$(git rev-parse HEAD);
+          git pull;
           COMMIT_MESSAGE=[build] on $HASH;
           else COMMIT_MESSAGE="[build]";fi
           ((NEW_VERSION_BUILD= PUBSPEC_BUILD_NUMBER+1))
@@ -99,7 +119,7 @@ workflows:
           git add ios/Runner.xcodeproj
           git commit -m "$COMMIT_MESSAGE"
           git push
-        title: Push new build version
+        title: Commit & push              
     - telegram-notify@1:
         inputs:
         - download_url: empty

@@ -1,3 +1,0 @@
-curl -X POST -H "Authorization: " "https://api.bitrise.io/v0.1/apps//builds" -d '{"hook_info": {"type": "bitrise"},"build_params": {"branch": "master", "workflow_id": "primary"}}'
-Abort
-curl -X POST "https://api.bitrise.io/v0.1/apps//builds/=/abort" -H "accept: application/json" -H "Authorization: " -H "Content-Type: application/json" -d "{ \"abort_with_success\": false, \"skip_notifications\": true}"

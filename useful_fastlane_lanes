@@ -1,7 +1,5 @@
-# Copy this to Fastfile in your fastlane
 default_platform(:ios)
 
-# Do not change the outputName variable value. It's paired bitrise scripts.
 outputPath = "./build"
 outputName = "ipa"
 
