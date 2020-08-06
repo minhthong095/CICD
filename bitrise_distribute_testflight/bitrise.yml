@@ -17,7 +17,6 @@ workflows:
         - version: 1.17.4
         - is_update: 'false'
     - get-pubspec-version-and-build-number@1: {}
-    - certificate-and-profile-installer@1: {}
     - script@1:
         title: Android version name & build number
         inputs:
