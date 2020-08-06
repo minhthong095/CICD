@@ -1,6 +1,6 @@
 # Bitrise CICD
 
-Installation for app scripts
+Installation for all the scripts
 
 - Create app in Bitrise.
 - Add repo's git ssh to Bitrise (manual section).
