@@ -1,8 +1,8 @@
 # Bitrise CICD
 
 - Create app in Bitrise.
-- Add SSH git repo to Bitrise.
-- Add SSH public key to Git account has authority to clone and write repo.
+- Add repo's git ssh to Bitrise.
+- Add Bitrise's ssh public key to Git account has authorized to clone and writed repo.
 
 I. [TEST] Firebase Distribute & TestFlight
 
