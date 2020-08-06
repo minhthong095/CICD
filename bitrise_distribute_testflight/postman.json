@@ -1,0 +1,115 @@
+{
+	"info": {
+		"_postman_id": "c5cc2133-0116-44fb-b5ec-d02fef6ba1f9",
+		"name": "Bitrise Distribute-Testfligt Trigger",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "build",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "YOUR-BITRISE-TOKEN",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"hook_info\": {\n        \"type\": \"bitrise\"\n    },\n    \"build_params\": {\n        \"branch\": \"master\",\n        \"workflow_id\": \"primary\"\n    }\n    // ,\n    // \"environments\": [\n    //     // Android\n    //     {\n    //         \"mapped_to\": \"ANDROID_CUSTOM_VERSION_NAME_ENDPOINT\",\n    //         \"value\": \"1.0.0\",\n    //         \"is_expand\": true\n    //     },\n    //     {\n    //         \"mapped_to\": \"ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT\",\n    //         \"value\": \"1\",\n    //         \"is_expand\": true\n    //     },\n    //     // iOS\n    //     {\n    //         \"mapped_to\": \"IOS_CUSTOM_VERSION_NAME_ENDPOINT\",\n    //         \"value\": \"1.0.0\",\n    //         \"is_expand\": true\n    //     },\n    //     {\n    //         \"mapped_to\": \"IOS_CUSTOM_BUILD_NUMBER_ENDPOINT\",\n    //         \"value\": \"1\",\n    //         \"is_expand\": true\n    //     }\n    // ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.bitrise.io/v0.1/apps/YOUR-APP-SLUG/builds",
+					"protocol": "https",
+					"host": [
+						"api",
+						"bitrise",
+						"io"
+					],
+					"path": [
+						"v0.1",
+						"apps",
+						"YOUR-APP-SLUG",
+						"builds"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "abort",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "YOUR-BITRISE-TOKEN"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"abort_with_success\": false,\n    \"skip_notifications\": true\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.bitrise.io/v0.1/apps/YOUR-APP-SLUG/builds/BUILD-NUMBER/abort",
+					"protocol": "https",
+					"host": [
+						"api",
+						"bitrise",
+						"io"
+					],
+					"path": [
+						"v0.1",
+						"apps",
+						"YOUR-APP-SLUG",
+						"builds",
+						"BUILD-NUMBER",
+						"abort"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "236f4010-1b21-427d-b976-baa8810eb3b0",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "2412ce26-3e1c-4289-83cc-506b33321727",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"protocolProfileBehavior": {}
+}

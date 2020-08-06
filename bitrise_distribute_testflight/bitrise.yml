@@ -3,31 +3,102 @@ format_version: '8'
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: flutter
 trigger_map:
-- push_branch: "*"
-  workflow: primary
 - pull_request_source_branch: "*"
   workflow: primary
 workflows:
   test:
-    setps: 
     steps:
-    - activate-ssh-key@4: {}
+    - activate-ssh-key@4:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - certificate-and-profile-installer@1: {}
     - git-clone@4: {}
+    - flutter-installer@0:
+        inputs:
+        - installation_bundle_url: https://storage.googleapis.com/flutter_infra/releases/stable/macos/flutter_macos_v1.12.13+hotfix.9-stable.zip
+        - version: ''
+        - is_update: 'false'
+    - get-pubspec-version-and-build-number@1: {}
+    - certificate-and-profile-installer@1: {}
+    - script@1:
+        title: Android version name & build number
+        inputs:
+        - content: |-
+            cd $BITRISE_SOURCE_DIR
+            echo "Android setting version name..."
+            VERSION_NAME=$PUBSPEC_VERSION_NAME;
+            if [ -z "$ANDROID_CUSTOM_VERSION_NAME_ENDPOINT" ];then echo "No \""ANDROID_CUSTOM_VERSION_NAME_ENDPOINT\"" from endpoint. Android platform will use default version name.";
+            else
+            VERSION_NAME=$ANDROID_CUSTOM_VERSION_NAME_ENDPOINT
+            sed -i -e "s/version: $PUBSPEC_VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $VERSION_NAME+$PUBSPEC_BUILD_NUMBER/g" pubspec.yaml; fi
+
+            echo "Android setting build number..."
+            if [ -z "$ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT" ];then echo "No \""ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT\"" from endpoint. Android
+            platform will automatically bump build number.";
+            ((NEW_VERSION_BUILD=PUBSPEC_BUILD_NUMBER+1));
+            sed -i -e "s/version: $VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $VERSION_NAME+$NEW_VERSION_BUILD/g" pubspec.yaml;
+            else
+            sed -i -e "s/version: $VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $VERSION_NAME+$ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT/g"
+            pubspec.yaml; fi
+    - flutter-build@0:
+        inputs:
+        - android_output_pattern: "*build/app/outputs/apk/*/*.apk"
+        - platform: android
+        title: Build Android
+    - cocoapods-install@1:
+        inputs:
+        - source_root_path: "$BITRISE_SOURCE_DIR/ios"
+    - script@1:
+        title: IOS version name & build number
+        inputs:
+        - content: "cd $BITRISE_SOURCE_DIR/ios\necho \"Ios setting version name...\"\nif
+            [ -z \"$IOS_CUSTOM_VERSION_NAME_ENDPOINT\" ];then echo \"No \\\"\"IOS_CUSTOM_VERSION_NAME_ENDPOINT\\\"\"
+            from endpoint. Ios platform will use default version name.\";\nelse\nfastlane
+            run increment_version_number version_number:$IOS_CUSTOM_VERSION_NAME_ENDPOINT;
+            fi\n            \necho \"Ios setting build number...\"\nif [ -z \"$IOS_CUSTOM_BUILD_NUMBER_ENDPOINT\"
+            ];then echo \"No \\\"\"IOS_CUSTOM_VERSION_NAME_ENDPOINT\\\"\" from endpoint.
+            Ios platform will automatically bump build number.\";\nfastlane run increment_build_number;\nelse\nfastlane
+            run increment_build_number build_number:$IOS_CUSTOM_BUILD_NUMBER_ENDPOINT;
+            fi"
+    - fastlane@2:
+        title: Build ios
+        inputs:
+        - work_dir: "$BITRISE_SOURCE_DIR/ios"
+        - lane: build
+    - firebase-app-distribution@0:
+        inputs:
+        - firebase_token: "$FB_TOKEN"
+        - groups: "$FB_APP_DISTRIBUTE_TESTGROUP"
+        - app_path: "$BITRISE_APK_PATH"
+        - app: "$FB_ANDROID_APP_DISTRIBUTE_ID"
+    - deploy-to-itunesconnect-application-loader@0:
+        inputs:
+        - itunescon_user: "$APPLE_ID"
+        - password: "$APPLE_PASSWORD"
+        - app_password: "$FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD"
+        - ipa_path: "$BITRISE_SOURCE_DIR/ios/build/ipa.ipa"
     - script@1:
         inputs:
         - content: |-
             cd $BITRISE_SOURCE_DIR
-            flutter pub get
-    - deploy-to-itunesconnect-application-loader@0:
+            git fetch
+            AHEAD_COUNT=$(git rev-list --count master...origin/master)
+            if [[ $AHEAD_COUNT > 0 ]];
+            then
+            HASH=$(git rev-parse HEAD);
+            git pull;
+            COMMIT_MESSAGE=[build] on $HASH;
+            else COMMIT_MESSAGE="[build]";fi
+            ((NEW_VERSION_BUILD= PUBSPEC_BUILD_NUMBER+1))
+            git add $BITRISE_SOURCE_DIR/pubspec.yaml
+            git add ios/Runner/Info.plist
+            git add ios/Runner.xcodeproj
+            git commit -m "$COMMIT_MESSAGE"
+            git push
+        title: Commit & push
+    - telegram-notify@1:
         inputs:
-        - app_password: "$FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD"
-        - password: "$APPLE_PASSWORD"
-        - itunescon_user: "$APPLE_ID"
-        - ipa_path: "$BITRISE_SOURCE_DIR/ios/build/ipa.ipa"
-    - telegram-notify@1.0:
-        inputs:
-        - custom_message: Test telegram
-        - download_url: about:blank
+        - download_url: empty
+        - custom_message: ''
   primary:
     steps:
     - activate-ssh-key@4:
@@ -45,20 +116,22 @@ workflows:
         title: Android version name & build number
         inputs:
         - content: |-
-          cd $BITRISE_SOURCE_DIR
-          echo "Android setting version name..."
-          VERSION_NAME=$PUBSPEC_VERSION_NAME;
-          if [ -z "$ANDROID_CUSTOM_VERSION_NAME_ENDPOINT" ];then echo "No \""ANDROID_CUSTOM_VERSION_NAME_ENDPOINT\"" from endpoint. Android platform will use default version name.";
-          else
-          VERSION_NAME=$ANDROID_CUSTOM_VERSION_NAME_ENDPOINT
-          sed -i -e "s/version: $PUBSPEC_VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $VERSION_NAME+$PUBSPEC_BUILD_NUMBER/g" pubspec.yaml; fi
-          
-          echo "Android setting build number..."
-          if [ -z "$ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT" ];then echo "No \""ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT\"" from endpoint. Android platform will automatically bump build number.";
-          ((NEW_VERSION_BUILD=PUBSPEC_BUILD_NUMBER+1));
-          sed -i -e "s/version: $VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $VERSION_NAME+$NEW_VERSION_BUILD/g" pubspec.yaml;
-          else
-          sed -i -e "s/version: $VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $VERSION_NAME+$ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT/g" pubspec.yaml; fi
+            cd $BITRISE_SOURCE_DIR
+            echo "Android setting version name..."
+            VERSION_NAME=$PUBSPEC_VERSION_NAME;
+            if [ -z "$ANDROID_CUSTOM_VERSION_NAME_ENDPOINT" ];then echo "No \""ANDROID_CUSTOM_VERSION_NAME_ENDPOINT\"" from endpoint. Android platform will use default version name.";
+            else
+            VERSION_NAME=$ANDROID_CUSTOM_VERSION_NAME_ENDPOINT
+            sed -i -e "s/version: $PUBSPEC_VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $VERSION_NAME+$PUBSPEC_BUILD_NUMBER/g" pubspec.yaml; fi
+
+            echo "Android setting build number..."
+            if [ -z "$ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT" ];then echo "No \""ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT\"" from endpoint. Android
+            platform will automatically bump build number.";
+            ((NEW_VERSION_BUILD=PUBSPEC_BUILD_NUMBER+1));
+            sed -i -e "s/version: $VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $VERSION_NAME+$NEW_VERSION_BUILD/g" pubspec.yaml;
+            else
+            sed -i -e "s/version: $VERSION_NAME+$PUBSPEC_BUILD_NUMBER/version: $VERSION_NAME+$ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT/g"
+            pubspec.yaml; fi
     - flutter-build@0:
         inputs:
         - android_output_pattern: "*build/app/outputs/apk/*/*.apk"
@@ -70,25 +143,20 @@ workflows:
     - script@1:
         title: IOS version name & build number
         inputs:
-      - content: |-
-        cd $BITRISE_SOURCE_DIR/ios
-        echo "Ios setting version name..."
-        if [ -z "$IOS_CUSTOM_VERSION_NAME_ENDPOINT" ];then echo "No \""IOS_CUSTOM_VERSION_NAME_ENDPOINT\"" from endpoint. Ios platform will use default version name.";
-        else
-        fastlane run increment_version_number version_number:$IOS_CUSTOM_VERSION_NAME_ENDPOINT; fi
-            
-        echo "Ios setting build number..."
-        if [ -z "$IOS_CUSTOM_BUILD_NUMBER_ENDPOINT" ];then echo "No \""IOS_CUSTOM_VERSION_NAME_ENDPOINT\"" from endpoint. Ios platform will automatically bump build number.";
-        fastlane run increment_build_number;
-        else
-        fastlane run increment_build_number build_number:$IOS_CUSTOM_BUILD_NUMBER_ENDPOINT; fi
+        - content: "cd $BITRISE_SOURCE_DIR/ios\necho \"Ios setting version name...\"\nif
+            [ -z \"$IOS_CUSTOM_VERSION_NAME_ENDPOINT\" ];then echo \"No \\\"\"IOS_CUSTOM_VERSION_NAME_ENDPOINT\\\"\"
+            from endpoint. Ios platform will use default version name.\";\nelse\nfastlane
+            run increment_version_number version_number:$IOS_CUSTOM_VERSION_NAME_ENDPOINT;
+            fi\n            \necho \"Ios setting build number...\"\nif [ -z \"$IOS_CUSTOM_BUILD_NUMBER_ENDPOINT\"
+            ];then echo \"No \\\"\"IOS_CUSTOM_VERSION_NAME_ENDPOINT\\\"\" from endpoint.
+            Ios platform will automatically bump build number.\";\nfastlane run increment_build_number;\nelse\nfastlane
+            run increment_build_number build_number:$IOS_CUSTOM_BUILD_NUMBER_ENDPOINT;
+            fi"
     - fastlane@2:
-        inputs:
-        - lane: build
-        - update_fastlane: 'false'
-        - verbose_log: 'yes'
-        - work_dir: "$BITRISE_SOURCE_DIR/ios"
         title: Build ios
+        inputs:
+        - work_dir: "$BITRISE_SOURCE_DIR/ios"
+        - lane: build
     - firebase-app-distribution@0:
         inputs:
         - firebase_token: "$FB_TOKEN"
@@ -104,22 +172,22 @@ workflows:
     - script@1:
         inputs:
         - content: |-
-          cd $BITRISE_SOURCE_DIR
-          git fetch
-          AHEAD_COUNT=$(git rev-list --count master...origin/master)
-          if [[ $AHEAD_COUNT > 0 ]]; 
-          then 
-          HASH=$(git rev-parse HEAD);
-          git pull;
-          COMMIT_MESSAGE=[build] on $HASH;
-          else COMMIT_MESSAGE="[build]";fi
-          ((NEW_VERSION_BUILD= PUBSPEC_BUILD_NUMBER+1))
-          git add $BITRISE_SOURCE_DIR/pubspec.yaml
-          git add ios/Runner/Info.plist
-          git add ios/Runner.xcodeproj
-          git commit -m "$COMMIT_MESSAGE"
-          git push
-        title: Commit & push              
+            cd $BITRISE_SOURCE_DIR
+            git fetch
+            AHEAD_COUNT=$(git rev-list --count master...origin/master)
+            if [[ $AHEAD_COUNT > 0 ]];
+            then
+            HASH=$(git rev-parse HEAD);
+            git pull;
+            COMMIT_MESSAGE=[build] on $HASH;
+            else COMMIT_MESSAGE="[build]";fi
+            ((NEW_VERSION_BUILD= PUBSPEC_BUILD_NUMBER+1))
+            git add $BITRISE_SOURCE_DIR/pubspec.yaml
+            git add ios/Runner/Info.plist
+            git add ios/Runner.xcodeproj
+            git commit -m "$COMMIT_MESSAGE"
+            git push
+        title: Commit & push
     - telegram-notify@1:
         inputs:
         - download_url: empty
@@ -140,7 +208,7 @@ app:
     FASTLANE_DONT_STORE_PASSWORD: '1'
   - opts:
       is_expand: false
-    FB_APP_DISTRIBUTE_TESTGROUP: mcom-tester
+    FB_APP_DISTRIBUTE_TESTGROUP: XXX
   - opts:
       is_expand: false
     GIT_CONFIG_EMAIL: minhthong095@gmail.com
