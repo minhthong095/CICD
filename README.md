@@ -61,6 +61,7 @@ Postman trigger:
     Ex: https://app.bitrise.io/app/2dcxxxxxbd4f5#/builds (YOUR-APP-SLUG is 2dcxxxxxbd4f5)
     Replace YOUR-BUILD-SLUG.
     Ex: https://app.bitrise.io/build/374a3xxxxxx7fcb89#?tab=log (BUILD-SLUG is 374a3xxxxxx7fcb89)
+        Build-slug also find on result of trigger build.
 - Option: There are 4 variables in 'build' request's body data. The name of these variables is easily understand and remember to uncomment it for using.
     ANDROID_CUSTOM_VERSION_NAME_ENDPOINT
     ANDROID_CUSTOM_BUILD_NUMBER_ENDPOINT
